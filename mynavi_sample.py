@@ -71,6 +71,7 @@ def main():
              "項目C": ""}, 
             ignore_index=True)
 
+# 1.会社名の取得
 
 
 
