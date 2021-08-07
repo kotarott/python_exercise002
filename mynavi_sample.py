@@ -8,15 +8,8 @@ import pandas as pd
 import datetime
 from webdriver_manager.chrome import ChromeDriverManager
 
-# ドライバ更新関数
-def setup_class():
-    Chrome(ChromeDriverManager().install())
-
 # Chromeを起動する関数
 def set_driver(driver_path, headless_flg):
-
-    # ドライバの更新
-    setup_class()
 
     if "chrome" in driver_path:
         options = ChromeOptions()
@@ -37,14 +30,14 @@ def set_driver(driver_path, headless_flg):
 
     # ChromeのWebDriverオブジェクトを作成する。
     if "chrome" in driver_path:
-        return Chrome(executable_path=os.getcwd() + "/" + driver_path,options=options)
+        return Chrome(ChromeDriverManager().install(), options=options)
     else:
         return Firefox(executable_path=os.getcwd()  + "/" + driver_path,options=options)
 
 # main処理
 def main(loop_count=1, search_keyword="高収入"):
 
-    makeLog('スクレイピングを開始します。')
+    create_log('スクレイピングを開始します。')
 
     # driverを起動
     if os.name == 'nt': #Windows
@@ -52,7 +45,7 @@ def main(loop_count=1, search_keyword="高収入"):
     elif os.name == 'posix': #Mac
         driver = set_driver("chromedriver", False)
 
-    makeLog('ドライバを起動しました。')
+    create_log('ドライバを起動しました。')
 
     # 直接キーワードの検索結果のページを開く
     driver.get("https://tenshoku.mynavi.jp/list/kw" + search_keyword)
@@ -71,7 +64,7 @@ def main(loop_count=1, search_keyword="高収入"):
     # # 検索ボタンクリック
     # driver.find_element_by_class_name("topSearch__button").click()
 
-    makeLog('検索しました。')
+    create_log('検索しました。')
 
     time.sleep(5)
     try:
@@ -91,14 +84,14 @@ def main(loop_count=1, search_keyword="高収入"):
         applicant_list =driver.find_elements_by_xpath("/html/body/div[1]/div[3]/form/div/div/div/div[2]/div[1]/table/tbody/tr[2]/td")
         income_list = driver.find_elements_by_xpath("/html/body/div[1]/div[3]/form/div/div/div/div[2]/div[1]/table/tbody/tr[5]/td")
 
-        makeLog(f'{i+1}ページ内のデータを取得しています。')
+        create_log(f'{i+1}ページ内のデータを取得しています。')
         
         # 1ページ分繰り返し
         # print(len(name_list))
         for count, (name, applicant, income) in enumerate(zip(name_list, applicant_list, income_list)):
             # print(name.text, applicant.text, income.text)
             # DataFrameに対して辞書形式でデータを追加する
-            makeLog(f'{count}件目のデータを取得しています。')
+            create_log(f'{count}件目のデータを取得しています。')
             df = df.append(
                 {"会社名": name.text, 
                 "対象": applicant.text,
@@ -108,13 +101,13 @@ def main(loop_count=1, search_keyword="高収入"):
         driver.execute_script('document.querySelector(".iconFont--arrowLeft").click()')
         time.sleep(2)
 
-        makeLog('画面遷移しました。')
+        create_log('画面遷移しました。')
 
-    makeLog('処理を終了します。')
+    create_log('処理を終了します。')
     return df
 
 # 会社名のみを取得する関数
-def splitItems(items, symbol):
+def split_items(items, symbol):
     item_list = {}
 
     for item in items:
@@ -128,7 +121,7 @@ def splitItems(items, symbol):
     return item_list
 
 # CSV作成関数
-def createCSV(data, file_name="company_list.csv"):
+def create_csv(data, file_name="company_list.csv"):
     num = 0
     while num == 0:
         if os.path.exists(file_name):
@@ -138,11 +131,11 @@ def createCSV(data, file_name="company_list.csv"):
             file_name += ".csv"
         else:
             data.to_csv(file_name)
-            makeLog(f'ファイル名:{file_name} を作成しました。')
+            create_log(f'ファイル名:{file_name} を作成しました。')
             return print("ファイルを作成しました。")
 
 # ログ作成関数
-def makeLog(comment):
+def create_log(comment):
     path = "log.csv"
     now = datetime.datetime.now()
     time_stamp = now.strftime("%Y/%m/%d %H:%M:%S")
@@ -159,7 +152,7 @@ def makeLog(comment):
 
 # 1.会社名の取得
 # company_list = main()
-# print(splitItems(list(company_list["会社名"]), ' | ').keys())
+# print(split_items(list(company_list["会社名"]), ' | ').keys())
 
 # 2.その他要素の取得
 # company_list = main()
@@ -167,27 +160,27 @@ def makeLog(comment):
 
 # 3.2ページ目以降も
 # company_list = main(2)
-# print(splitItems(list(company_list["会社名"]), ' | ').keys())
+# print(split_items(list(company_list["会社名"]), ' | ').keys())
 
 # 4.コンソールからキーワード指定
 # word = input("検索ワードを入れてください >>>")
 # company_list = main(1, word)
-# print(splitItems(list(company_list["会社名"]), ' | ').keys())
+# print(split_items(list(company_list["会社名"]), ' | ').keys())
 
 # 5.CSVに保存
 # company_list = main()
-# createCSV(company_list)
+# create_csv(company_list)
 
 # 6.エラースキップ
 # try:
 #     company_list = main(1, "リモート")
-#     createCSV(company_list)
+#     create_csv(company_list)
 # except:
 #     print("正しく処理されませんでした。")
 
 # 7.logファイル付き
 company_list = main(1, "リモート")
-createCSV(company_list)
+create_csv(company_list)
 
 # 直接起動された場合はmain()を起動(モジュールとして呼び出された場合は起動しないようにするため)
 if __name__ == "__main__":
