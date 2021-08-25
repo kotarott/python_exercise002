@@ -41,7 +41,7 @@ def main(loop_count=1, search_keyword="高収入"):
 
     # driverを起動
     if os.name == 'nt': #Windows
-        driver = set_driver("chromedriver.exe", False)
+        driver = set_driver("chromedriver.exe", True)
     elif os.name == 'posix': #Mac
         driver = set_driver("chromedriver", False)
 
@@ -80,22 +80,23 @@ def main(loop_count=1, search_keyword="高収入"):
 
         # ページ終了まで繰り返し取得
         # 検索結果の一番上の会社名を取得
-        name_list = driver.find_elements_by_class_name("cassetteRecruit__name")
-        applicant_list =driver.find_elements_by_xpath("/html/body/div[1]/div[3]/form/div/div/div/div[2]/div[1]/table/tbody/tr[2]/td")
-        income_list = driver.find_elements_by_xpath("/html/body/div[1]/div[3]/form/div/div/div/div[2]/div[1]/table/tbody/tr[5]/td")
+        name_list = driver.find_elements_by_css_selector(".cassetteRecruit__heading .cassetteRecruit__name")
+        job_details = driver.find_elements_by_css_selector(".cassetteRecruit__main .tableCondition")
 
         create_log(f'{i+1}ページ内のデータを取得しています。')
-        
+
         # 1ページ分繰り返し
         # print(len(name_list))
-        for count, (name, applicant, income) in enumerate(zip(name_list, applicant_list, income_list)):
+        for count, (name, table) in enumerate(zip(name_list, job_details)):
             # print(name.text, applicant.text, income.text)
             # DataFrameに対して辞書形式でデータを追加する
-            create_log(f'{count}件目のデータを取得しています。')
+            create_log(f'{count+1}件目のデータを取得しています。')
+            applicant = find_table_target_word(table.find_elements_by_tag_name("th"), table.find_elements_by_tag_name("td"), "対象となる方")
+            income = find_table_target_word(table.find_elements_by_tag_name("th"), table.find_elements_by_tag_name("td"), "初年度年収")
             df = df.append(
                 {"会社名": name.text, 
-                "対象": applicant.text,
-                "初年度年収": income.text}, 
+                "対象": applicant,
+                "初年度年収": income}, 
                 ignore_index=True)
 
         driver.execute_script('document.querySelector(".iconFont--arrowLeft").click()')
@@ -105,6 +106,13 @@ def main(loop_count=1, search_keyword="高収入"):
 
     create_log('処理を終了します。')
     return df
+
+def find_table_target_word(th_elms, td_elms, target:str):
+    # tableのthからtargetの文字列を探し一致する行のtdを返す
+    for th_elm,td_elm in zip(th_elms,td_elms):
+        if th_elm.text == target:
+            return td_elm.text
+
 
 # 会社名のみを取得する関数
 def split_items(items, symbol):
@@ -178,11 +186,10 @@ def create_log(comment):
 # except:
 #     print("正しく処理されませんでした。")
 
-# 7.logファイル付き
-company_list = main(1, "リモート")
-create_csv(company_list)
+
 
 # 直接起動された場合はmain()を起動(モジュールとして呼び出された場合は起動しないようにするため)
 if __name__ == "__main__":
-    # main()
-    pass
+    # 7.logファイル付き
+    company_list = main(2, "リモート")
+    create_csv(company_list)
